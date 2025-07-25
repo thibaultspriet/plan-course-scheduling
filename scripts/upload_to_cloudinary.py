@@ -14,6 +14,7 @@ from typing import Dict, Any
 
 import cloudinary
 import cloudinary.uploader
+import pytz
 from dotenv import load_dotenv
 
 
@@ -55,8 +56,9 @@ class CloudinaryUploader:
         config_dir = Path("config")
         config_dir.mkdir(exist_ok=True)
         
-        # Generate scheduled time (default: 24 hours from now)
-        scheduled_time = datetime.now() + timedelta(hours=scheduled_hours)
+        # Generate scheduled time in Europe/Paris timezone (default: 24 hours from now)
+        paris_tz = pytz.timezone('Europe/Paris')
+        scheduled_time = datetime.now(paris_tz) + timedelta(hours=scheduled_hours)
         
         config = {
             "video_url": video_url,
@@ -119,7 +121,9 @@ def main():
         )
         
         print(f"✅ Configuration file created: {config_path}")
-        print(f"   Scheduled for: {datetime.now() + timedelta(hours=args.hours)}")
+        paris_tz = pytz.timezone('Europe/Paris')
+        scheduled_datetime = datetime.now(paris_tz) + timedelta(hours=args.hours)
+        print(f"   Scheduled for: {scheduled_datetime} (Europe/Paris)")
         
     except Exception as e:
         print(f"❌ Error: {str(e)}")

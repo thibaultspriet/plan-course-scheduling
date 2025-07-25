@@ -8,6 +8,7 @@ dependencies = [
     "requests>=2.31.0",
     "python-dotenv>=1.0.0",
     "schedule>=1.2.0",
+    "pytz>=2025.2",
 ]
 
 [project.optional-dependencies]

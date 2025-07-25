@@ -15,6 +15,7 @@ from pathlib import Path
 from typing import Dict, Any, List
 
 import requests
+import pytz
 from dotenv import load_dotenv
 
 
@@ -199,11 +200,26 @@ class ReelScheduler:
     def is_time_to_post(self, scheduled_time_str: str) -> bool:
         """Check if it's time to post based on scheduled time."""
         try:
+            # Parse scheduled time
             scheduled_time = datetime.fromisoformat(scheduled_time_str)
-            current_time = datetime.now()
+            paris_tz = pytz.timezone('Europe/Paris')
             
-            # Post if current time is past scheduled time (with 5 minute buffer)
-            return current_time >= scheduled_time
+            if scheduled_time.tzinfo is None:
+                # If no timezone info, assume Europe/Paris for backward compatibility
+                scheduled_time = paris_tz.localize(scheduled_time)
+            
+            # Current time in Europe/Paris
+            current_time = datetime.now(paris_tz)
+            
+            # Post if current time is past scheduled time
+            is_ready = current_time >= scheduled_time
+            
+            if not is_ready:
+                self.instagram_api.logger.info(
+                    f"Not yet time to post. Current: {current_time}, Scheduled: {scheduled_time}"
+                )
+            
+            return is_ready
         except Exception as e:
             self.instagram_api.logger.error(f"Invalid scheduled time format: {str(e)}")
             return False
@@ -213,7 +229,8 @@ class ReelScheduler:
         try:
             config = self.load_config(config_path)
             config['posted'] = True
-            config['posted_at'] = datetime.now().isoformat()
+            paris_tz = pytz.timezone('Europe/Paris')
+            config['posted_at'] = datetime.now(paris_tz).isoformat()
             
             with open(config_path, 'w') as f:
                 json.dump(config, f, indent=2)
@@ -242,6 +259,9 @@ class ReelScheduler:
                 # Check if it's time to post
                 if not self.is_time_to_post(config['scheduled_time']):
                     scheduled_time = datetime.fromisoformat(config['scheduled_time'])
+                    paris_tz = pytz.timezone('Europe/Paris')
+                    if scheduled_time.tzinfo is None:
+                        scheduled_time = paris_tz.localize(scheduled_time)
                     self.instagram_api.logger.info(
                         f"Skipping {config_file.name} - scheduled for {scheduled_time}"
                     )
