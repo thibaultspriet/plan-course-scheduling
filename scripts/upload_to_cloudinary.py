@@ -74,8 +74,8 @@ class CloudinaryUploader:
         config_filename = f"reel_{timestamp}_{video_name}.json"
         config_path = config_dir / config_filename
         
-        with open(config_path, 'w') as f:
-            json.dump(config, f, indent=2)
+        with open(config_path, 'w', encoding='utf-8') as f:
+            json.dump(config, f, indent=2, ensure_ascii=False)
         
         return str(config_path)
 
@@ -84,6 +84,7 @@ def main():
     parser = argparse.ArgumentParser(description='Upload video to Cloudinary and create config')
     parser.add_argument('video_path', help='Path to the video file')
     parser.add_argument('--caption', '-c', default='', help='Instagram caption')
+    parser.add_argument('--caption-file', help='Path to file containing the caption')
     parser.add_argument('--hours', type=int, default=24, 
                        help='Hours from now to schedule posting (default: 24)')
     parser.add_argument('--public-id', '-p', help='Custom Cloudinary public ID')
@@ -95,6 +96,20 @@ def main():
     if not video_path.exists():
         print(f"Error: Video file '{args.video_path}' not found")
         sys.exit(1)
+    
+    # Handle caption from file or argument
+    caption = args.caption
+    if args.caption_file:
+        caption_file = Path(args.caption_file)
+        if not caption_file.exists():
+            print(f"Error: Caption file '{args.caption_file}' not found")
+            sys.exit(1)
+        try:
+            with open(caption_file, 'r', encoding='utf-8') as f:
+                caption = f.read().strip()
+        except Exception as e:
+            print(f"Error reading caption file: {str(e)}")
+            sys.exit(1)
     
     if not video_path.suffix.lower() in ['.mp4', '.mov', '.avi', '.mkv']:
         print(f"Warning: '{video_path.suffix}' may not be supported by Instagram")
@@ -116,7 +131,7 @@ def main():
         config_path = uploader.create_config_file(
             video_url=result['secure_url'],
             video_name=video_path.stem,
-            caption=args.caption,
+            caption=caption,
             scheduled_hours=args.hours
         )
         
