@@ -9,6 +9,7 @@ dependencies = [
     "python-dotenv>=1.0.0",
     "schedule>=1.2.0",
     "pytz>=2025.2",
+    "notion-client>=2.2.1",
 ]
 
 [project.optional-dependencies]

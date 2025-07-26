@@ -39,13 +39,33 @@ class CloudinaryUploader:
     def upload_video(self, video_path: str, public_id: str = None) -> Dict[str, Any]:
         """Upload video to Cloudinary and return upload result."""
         try:
-            result = cloudinary.uploader.upload(
-                video_path,
-                resource_type="video",
-                public_id=public_id,
-                overwrite=True,
-                format="mp4"
-            )
+            # Check file size to determine upload method
+            file_size = Path(video_path).stat().st_size
+            file_size_mb = file_size / (1024 * 1024)
+            
+            print(f"Video file size: {file_size_mb:.1f} MB")
+            
+            # Always use regular upload with async processing for videos > 40MB
+            if file_size_mb > 40:
+                print("Using upload with async processing for large video...")
+                result = cloudinary.uploader.upload(
+                    video_path,
+                    resource_type="video",
+                    public_id=public_id,
+                    overwrite=True,
+                    eager=[{"format": "mp4"}],
+                    eager_async=True
+                )
+            else:
+                print("Using synchronous upload...")
+                result = cloudinary.uploader.upload(
+                    video_path,
+                    resource_type="video",
+                    public_id=public_id,
+                    overwrite=True,
+                    format="mp4"
+                )
+            
             return result
         except Exception as e:
             raise Exception(f"Failed to upload video to Cloudinary: {str(e)}")
@@ -78,6 +98,31 @@ class CloudinaryUploader:
             json.dump(config, f, indent=2, ensure_ascii=False)
         
         return str(config_path)
+    
+    def create_config_file_with_time(self, video_url: str, video_name: str, 
+                                   caption: str, scheduled_time: datetime) -> str:
+        """Create configuration file with exact scheduled time."""
+        config_dir = Path("config")
+        config_dir.mkdir(exist_ok=True)
+        
+        config = {
+            "video_url": video_url,
+            "caption": caption or f"New reel from {video_name}",
+            "scheduled_time": scheduled_time.isoformat(),
+            "location_id": None,
+            "cover_url": None,
+            "posted": False
+        }
+        
+        # Use timestamp for unique filename
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        config_filename = f"reel_{timestamp}_{video_name}.json"
+        config_path = config_dir / config_filename
+        
+        with open(config_path, 'w', encoding='utf-8') as f:
+            json.dump(config, f, indent=2, ensure_ascii=False)
+        
+        return str(config_path)
 
 
 def main():
@@ -87,6 +132,7 @@ def main():
     parser.add_argument('--caption-file', help='Path to file containing the caption')
     parser.add_argument('--hours', type=int, default=24, 
                        help='Hours from now to schedule posting (default: 24)')
+    parser.add_argument('--scheduled-time', help='Exact scheduled time in ISO format (overrides --hours)')
     parser.add_argument('--public-id', '-p', help='Custom Cloudinary public ID')
     
     args = parser.parse_args()
@@ -128,17 +174,41 @@ def main():
         print(f"   Public ID: {result['public_id']}")
         
         # Create configuration file
-        config_path = uploader.create_config_file(
-            video_url=result['secure_url'],
-            video_name=video_path.stem,
-            caption=caption,
-            scheduled_hours=args.hours
-        )
+        if args.scheduled_time:
+            # Use exact scheduled time
+            scheduled_dt = datetime.fromisoformat(args.scheduled_time.replace('Z', '+00:00'))
+            if scheduled_dt.tzinfo is None:
+                # Assume Europe/Paris if no timezone
+                paris_tz = pytz.timezone('Europe/Paris')
+                scheduled_dt = paris_tz.localize(scheduled_dt)
+            else:
+                # Convert to Paris timezone
+                paris_tz = pytz.timezone('Europe/Paris')
+                scheduled_dt = scheduled_dt.astimezone(paris_tz)
+            
+            config_path = uploader.create_config_file_with_time(
+                video_url=result['secure_url'],
+                video_name=video_path.stem,
+                caption=caption,
+                scheduled_time=scheduled_dt
+            )
+        else:
+            # Use hours offset (existing behavior)
+            config_path = uploader.create_config_file(
+                video_url=result['secure_url'],
+                video_name=video_path.stem,
+                caption=caption,
+                scheduled_hours=args.hours
+            )
         
         print(f"✅ Configuration file created: {config_path}")
-        paris_tz = pytz.timezone('Europe/Paris')
-        scheduled_datetime = datetime.now(paris_tz) + timedelta(hours=args.hours)
-        print(f"   Scheduled for: {scheduled_datetime} (Europe/Paris)")
+        
+        if args.scheduled_time:
+            print(f"   Scheduled for: {scheduled_dt} (Europe/Paris)")
+        else:
+            paris_tz = pytz.timezone('Europe/Paris')
+            scheduled_datetime = datetime.now(paris_tz) + timedelta(hours=args.hours)
+            print(f"   Scheduled for: {scheduled_datetime} (Europe/Paris)")
         
     except Exception as e:
         print(f"❌ Error: {str(e)}")

@@ -1,0 +1,21 @@
+{
+  "database_properties": {
+    "scheduled_time": "Date de publication",
+    "video_path": "_local_video_path",
+    "title": "Name",
+    "status": "Status"
+  },
+  "content_extraction": {
+    "description_heading": "Description",
+    "description_heading_type": "heading_1"
+  },
+  "filters": {
+    "future_videos_only": true,
+    "exclude_posted": true,
+    "posted_status_values": ["Publiée"]
+  },
+  "output": {
+    "config_prefix": "notion",
+    "include_notion_metadata": true
+  }
+}
