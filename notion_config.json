@@ -12,7 +12,8 @@
   "filters": {
     "future_videos_only": true,
     "exclude_posted": true,
-    "posted_status_values": ["Publiée"]
+    "posted_status_values": ["Publiée"],
+    "include_status_values": ["Prête"]
   },
   "output": {
     "config_prefix": "notion",

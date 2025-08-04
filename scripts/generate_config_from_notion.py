@@ -97,6 +97,30 @@ class NotionConfigGenerator:
                         "and": status_filters
                     })
             
+            # Add include status filter if specified
+            include_status_values = filter_config.get('include_status_values')
+            if include_status_values:
+                if len(include_status_values) == 1:
+                    filters.append({
+                        "property": db_props['status'],
+                        "status": {
+                            "equals": include_status_values[0]
+                        }
+                    })
+                else:
+                    # For multiple include status values, use "or" logic
+                    status_filters = []
+                    for status_value in include_status_values:
+                        status_filters.append({
+                            "property": db_props['status'],
+                            "status": {
+                                "equals": status_value
+                            }
+                        })
+                    filters.append({
+                        "or": status_filters
+                    })
+            
             # Build query
             query = {
                 "database_id": self.database_id,
