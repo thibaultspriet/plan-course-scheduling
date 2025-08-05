@@ -99,7 +99,7 @@ class InstagramAPI:
             self.logger.error(f"Failed to check media status: {str(e)}")
             raise
     
-    def wait_for_processing(self, container_id: str, max_wait: int = 300) -> bool:
+    def wait_for_processing(self, container_id: str, max_wait: int = 720) -> bool:
         """Wait for media processing to complete."""
         self.logger.info(f"Waiting for media processing...")
         
