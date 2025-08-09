@@ -4,5 +4,6 @@
   "scheduled_time": "2025-08-09T20:00:00+02:00",
   "location_id": null,
   "cover_url": null,
-  "posted": false
+  "posted": true,
+  "posted_at": "2025-08-09T20:30:03.818667+02:00"
 }
