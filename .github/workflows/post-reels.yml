@@ -19,6 +19,9 @@ jobs:
     steps:
     - name: Checkout repository
       uses: actions/checkout@v4
+      with:
+        # Need token with workflow permissions to update other workflows
+        token: ${{ secrets.WORKFLOW_TOKEN }}
       
     - name: Set up Python
       uses: actions/setup-python@v4
