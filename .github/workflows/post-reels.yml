@@ -33,6 +33,10 @@ jobs:
       run: |
         uv run python scripts/post_to_instagram.py
         
+    - name: Clean up old posted configurations
+      run: |
+        uv run python scripts/cleanup_old_configs.py
+        
     - name: Commit updated config files
       run: |
         git config --local user.email "action@github.com"

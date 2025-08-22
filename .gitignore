@@ -50,3 +50,8 @@ Thumbs.db
 # Temporary files
 *.tmp
 *.temp
+
+test_flask.py
+tiktok_tokens.json
+scripts/post_to_tiktok.py
+scripts/tiktok_auth.py
