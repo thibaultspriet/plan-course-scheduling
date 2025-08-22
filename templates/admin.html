@@ -412,6 +412,26 @@
                 </button>
             </div>
             
+            <h4>☁️ Gestion Cloudinary</h4>
+            <div class="actions-grid">
+                <button class="btn btn-warning" onclick="runAction('cleanup_cloudinary_dry')">
+                    👀 Prévisualiser nettoyage posts publiés
+                </button>
+                <button class="btn btn-danger" onclick="runAction('cleanup_cloudinary')">
+                    🗑️ Nettoyer vidéos posts publiés
+                </button>
+            </div>
+            
+            <h4>🔥 Nettoyage Complet (One-Shot)</h4>
+            <div class="actions-grid">
+                <button class="btn btn-warning" onclick="runAction('cleanup_all_cloudinary_dry')">
+                    🔍 Prévisualiser TOUTES les vidéos
+                </button>
+                <button class="btn btn-danger" onclick="confirmDestructiveAction('cleanup_all_cloudinary')">
+                    💥 SUPPRIMER TOUTES les vidéos historiques
+                </button>
+            </div>
+            
             <!-- Git Actions -->
             <div class="git-section">
                 <h4>📦 Actions Git</h4>
@@ -771,6 +791,23 @@
                     modal.style.display = 'none';
                 }
             });
+        }
+        
+        // Confirmation for destructive actions
+        function confirmDestructiveAction(action) {
+            const confirmText = "SUPPRIMER TOUTES";
+            const userInput = prompt(
+                "⚠️ ATTENTION: Cette action va SUPPRIMER TOUTES les vidéos historiques sur Cloudinary!\n\n" +
+                "Seules les vidéos des posts en attente seront protégées.\n" +
+                "Cette action est IRRÉVERSIBLE!\n\n" +
+                `Tapez "${confirmText}" pour confirmer:`
+            );
+            
+            if (userInput === confirmText) {
+                runAction(action);
+            } else {
+                addLog('❌ Action annulée - texte de confirmation incorrect', 'error');
+            }
         }
         
         // Auto-refresh status every 30 seconds

@@ -31,26 +31,31 @@ app.config.update(
     SEND_FILE_MAX_AGE_DEFAULT=0,  # Disable caching for development
 )
 
-def find_free_port(start_port=5000):
-    """Find available port."""
+def check_port_available(port=5001):
+    """Check if the preferred port is available."""
     import socket
-    for port in range(start_port, start_port + 10):
+    try:
         with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
-            try:
-                s.bind(('localhost', port))
-                return port
-            except OSError:
-                continue
-    return None
+            s.bind(('localhost', port))
+            return True
+    except OSError:
+        return False
 
 def run_dev_server():
     """Run development server with hot reloading."""
     
-    # Find available port
-    port = find_free_port()
-    if not port:
-        print("❌ No available ports found in range 5000-5009")
-        return
+    # Use fixed port for development consistency
+    port = 5001
+    
+    if not check_port_available(port):
+        print(f"⚠️ Port {port} is already in use!")
+        print("💡 Tips to resolve:")
+        print(f"   • Kill existing process: lsof -ti:{port} | xargs kill -9")
+        print("   • Wait a moment for the previous server to fully stop")
+        print("   • Check if another admin panel is running")
+        print()
+        print("⏭️ Continuing anyway - Flask will handle the port conflict...")
+        print()
     
     # Files to watch for changes
     extra_files = [

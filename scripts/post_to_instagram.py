@@ -18,6 +18,9 @@ import requests
 import pytz
 from dotenv import load_dotenv
 
+# Import our Cloudinary utilities
+from cloudinary_utils import delete_video_from_cloudinary
+
 
 class InstagramAPI:
     def __init__(self):
@@ -263,16 +266,44 @@ class ReelScheduler:
             self.instagram_api.logger.error(f"Invalid scheduled time format: {str(e)}")
             return False
     
-    def mark_as_posted(self, config_path: str):
-        """Mark configuration as posted."""
+    def mark_as_posted(self, config_path: str, delete_video: bool = True):
+        """Mark configuration as posted and optionally delete video from Cloudinary."""
         try:
             config = self.load_config(config_path)
+            
+            # Delete video from Cloudinary if requested
+            if delete_video and config.get('video_url'):
+                self.instagram_api.logger.info("Deleting video from Cloudinary after successful post...")
+                
+                try:
+                    result = delete_video_from_cloudinary(config['video_url'])
+                    
+                    if result['success']:
+                        self.instagram_api.logger.info(f"✅ Video deleted from Cloudinary: {result['public_id']}")
+                        # Mark that video was deleted
+                        config['cloudinary_video_deleted'] = True
+                        config['cloudinary_video_deleted_at'] = datetime.now(pytz.timezone('Europe/Paris')).isoformat()
+                    else:
+                        self.instagram_api.logger.warning(f"⚠️ Failed to delete video from Cloudinary: {result['message']}")
+                        config['cloudinary_video_deleted'] = False
+                        config['cloudinary_deletion_error'] = result['message']
+                        
+                except Exception as e:
+                    self.instagram_api.logger.error(f"❌ Error deleting video from Cloudinary: {str(e)}")
+                    config['cloudinary_video_deleted'] = False
+                    config['cloudinary_deletion_error'] = str(e)
+            
+            # Mark as posted
             config['posted'] = True
             paris_tz = pytz.timezone('Europe/Paris')
             config['posted_at'] = datetime.now(paris_tz).isoformat()
             
+            # Save updated config
             with open(config_path, 'w', encoding='utf-8') as f:
                 json.dump(config, f, indent=2, ensure_ascii=False)
+                
+            self.instagram_api.logger.info(f"Config marked as posted: {config_path}")
+            
         except Exception as e:
             self.instagram_api.logger.error(f"Failed to mark config as posted: {str(e)}")
     

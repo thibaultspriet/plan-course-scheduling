@@ -159,6 +159,9 @@ def run_command_with_logging(command, process_id):
         # Emit start event
         socketio.emit('process_started', {'process_id': process_id, 'command': ' '.join(command)})
         
+        # Emit immediate feedback for user
+        socketio.emit('process_output', {'process_id': process_id, 'line': f'🚀 Starting: {" ".join(command)}'})
+        
         # For Python scripts, add explicit unbuffered flag
         if len(command) > 1 and 'python' in command[1]:
             command.insert(2, '-u')
@@ -167,13 +170,14 @@ def run_command_with_logging(command, process_id):
         
         # Run the command and capture all output
         try:
+            print(f"[DEBUG] Running command: {' '.join(command)}")  # Debug print
             result = subprocess.run(
                 command,
                 capture_output=True,
                 text=True,
                 cwd=Path(__file__).parent,
                 env={**os.environ, 'PYTHONUNBUFFERED': '1'},
-                timeout=300  # 5 minute timeout
+                timeout=600  # Increase timeout to 10 minutes for cleanup operations
             )
             
             # Emit all output lines
@@ -249,6 +253,10 @@ def run_action(action):
         'generate_configs': ['uv', 'run', 'python', 'scripts/generate_config_from_notion.py'],
         'process_configs': ['uv', 'run', 'python', 'scripts/process_notion_configs.py'],
         'cleanup_old': ['uv', 'run', 'python', 'scripts/cleanup_old_configs.py'],
+        'cleanup_cloudinary': ['uv', 'run', 'python', 'scripts/cloudinary_utils.py'],
+        'cleanup_cloudinary_dry': ['uv', 'run', 'python', 'scripts/cloudinary_utils.py', '--dry-run'],
+        'cleanup_all_cloudinary': ['uv', 'run', 'python', 'scripts/cleanup_all_cloudinary_videos.py', '--force'],
+        'cleanup_all_cloudinary_dry': ['uv', 'run', 'python', 'scripts/cleanup_all_cloudinary_videos.py', '--dry-run'],
         'git_status': ['git', 'status'],
         'git_add_configs': ['git', 'add', 'config/'],
     }
@@ -450,22 +458,19 @@ if __name__ == '__main__':
     templates_dir = Path(__file__).parent / 'templates'
     templates_dir.mkdir(exist_ok=True)
     
-    # Find available port
-    import socket
-    def find_free_port(start_port=5000):
-        for port in range(start_port, start_port + 10):
-            with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
-                try:
-                    s.bind(('localhost', port))
-                    return port
-                except OSError:
-                    continue
-        return None
+    # Use fixed port for development
+    port = 5001  # Fixed port for consistent development experience
     
-    port = find_free_port()
-    if not port:
-        print("❌ No available ports found in range 5000-5009")
-        exit(1)
+    # Check if port is available (but don't search for alternatives)
+    import socket
+    try:
+        with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+            s.bind(('localhost', port))
+    except OSError:
+        print(f"⚠️ Port {port} is already in use")
+        print("💡 Kill existing process or wait a moment for it to release the port")
+        print(f"🔧 To find and kill process: lsof -ti:{port} | xargs kill -9")
+        # Don't exit, let Flask handle the error gracefully
     
     print("🚀 Starting Instagram Reel Automation Admin Panel...")
     print(f"🌐 Access the panel at: http://localhost:{port}")
