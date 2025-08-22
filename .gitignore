@@ -55,3 +55,6 @@ test_flask.py
 tiktok_tokens.json
 scripts/post_to_tiktok.py
 scripts/tiktok_auth.py
+
+# Admin panel logs (optional - you may want to commit these)
+admin_logs/

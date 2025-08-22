@@ -1,0 +1,783 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Instagram Reel Automation - Admin Panel</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.7.2/socket.io.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background-color: #f5f5f7;
+            color: #1d1d1f;
+            line-height: 1.5;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+            padding: 20px;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        
+        .header h1 {
+            color: #1d1d1f;
+            margin-bottom: 10px;
+        }
+        
+        .header p {
+            color: #86868b;
+        }
+        
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+        
+        .card {
+            background: white;
+            border-radius: 12px;
+            padding: 20px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        
+        .card h3 {
+            margin-bottom: 15px;
+            color: #1d1d1f;
+            border-bottom: 2px solid #007AFF;
+            padding-bottom: 8px;
+        }
+        
+        .status-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 8px 0;
+            border-bottom: 1px solid #f0f0f0;
+            cursor: pointer;
+            transition: background-color 0.2s ease;
+        }
+        
+        .status-item:hover {
+            background-color: #f8f9fa;
+            border-radius: 6px;
+            padding: 8px 12px;
+        }
+        
+        .status-item:last-child {
+            border-bottom: none;
+        }
+        
+        .status-badge {
+            padding: 4px 12px;
+            border-radius: 16px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+        
+        .status-success { background-color: #d1f2eb; color: #00875a; }
+        .status-warning { background-color: #fff8e1; color: #ff8f00; }
+        .status-error { background-color: #ffebee; color: #d32f2f; }
+        .status-info { background-color: #e3f2fd; color: #1976d2; }
+        
+        .actions-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 15px;
+            margin-bottom: 15px;
+        }
+        
+        .btn {
+            padding: 12px 20px;
+            border: none;
+            border-radius: 8px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            text-align: center;
+            font-size: 14px;
+        }
+        
+        .btn:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+        }
+        
+        .btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+        
+        .btn-primary { background-color: #007AFF; color: white; }
+        .btn-secondary { background-color: #34C759; color: white; }
+        .btn-warning { background-color: #FF9500; color: white; }
+        .btn-danger { background-color: #FF3B30; color: white; }
+        
+        .logs-container {
+            background: #1d1d1f;
+            border-radius: 8px;
+            padding: 20px;
+            margin-top: 20px;
+            height: 400px;
+            overflow-y: auto;
+        }
+        
+        .logs-header {
+            color: #86868b;
+            font-size: 14px;
+            margin-bottom: 10px;
+            padding-bottom: 10px;
+            border-bottom: 1px solid #333;
+        }
+        
+        .log-entry {
+            color: #f5f5f7;
+            font-family: 'SF Mono', Monaco, 'Cascadia Code', monospace;
+            font-size: 12px;
+            margin: 2px 0;
+            padding: 2px 0;
+        }
+        
+        .log-timestamp {
+            color: #86868b;
+            margin-right: 10px;
+        }
+        
+        .log-error {
+            color: #FF453A;
+        }
+        
+        .log-success {
+            color: #32D74B;
+        }
+        
+        .log-info {
+            color: #64D2FF;
+        }
+        
+        .refresh-button {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            width: 50px;
+            height: 50px;
+            border-radius: 25px;
+            background-color: #007AFF;
+            color: white;
+            border: none;
+            cursor: pointer;
+            font-size: 20px;
+            box-shadow: 0 4px 15px rgba(0,122,255,0.3);
+        }
+        
+        .git-section {
+            margin-top: 20px;
+        }
+        
+        .git-input {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #d1d1d6;
+            border-radius: 6px;
+            margin: 10px 0;
+            font-size: 14px;
+        }
+        
+        .loading {
+            opacity: 0.6;
+            pointer-events: none;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        .spinner {
+            display: inline-block;
+            width: 16px;
+            height: 16px;
+            border: 2px solid #f3f3f3;
+            border-top: 2px solid #007AFF;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-right: 8px;
+        }
+        
+        /* Modal styles */
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0,0,0,0.5);
+            backdrop-filter: blur(4px);
+        }
+        
+        .modal-content {
+            background-color: white;
+            margin: 5% auto;
+            padding: 0;
+            border-radius: 12px;
+            width: 80%;
+            max-width: 800px;
+            max-height: 80vh;
+            overflow: hidden;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+        }
+        
+        .modal-header {
+            background: linear-gradient(135deg, #007AFF, #34C759);
+            color: white;
+            padding: 20px;
+            border-bottom: none;
+        }
+        
+        .modal-header h2 {
+            margin: 0;
+            font-size: 24px;
+        }
+        
+        .modal-header .close {
+            color: white;
+            float: right;
+            font-size: 28px;
+            font-weight: bold;
+            cursor: pointer;
+            opacity: 0.8;
+        }
+        
+        .modal-header .close:hover {
+            opacity: 1;
+        }
+        
+        .modal-body {
+            padding: 20px;
+            max-height: 60vh;
+            overflow-y: auto;
+        }
+        
+        .file-item {
+            background: #f8f9fa;
+            border: 1px solid #e9ecef;
+            border-radius: 8px;
+            padding: 15px;
+            margin: 10px 0;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+        
+        .file-item:hover {
+            background: #e9ecef;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        }
+        
+        .file-name {
+            font-weight: 600;
+            color: #007AFF;
+            margin-bottom: 8px;
+        }
+        
+        .file-details {
+            font-size: 14px;
+            color: #6c757d;
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 6px;
+        }
+        
+        .file-detail-item {
+            display: flex;
+            justify-content: flex-start;
+            gap: 8px;
+        }
+        
+        .file-detail-label {
+            font-weight: 500;
+            min-width: 90px;
+            flex-shrink: 0;
+        }
+        
+        .file-detail-value {
+            color: #495057;
+            flex-grow: 1;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🎬 Instagram Reel Automation</h1>
+            <p>Panel d'administration pour la gestion du workflow de publication</p>
+        </div>
+        
+        <button class="refresh-button" onclick="refreshStatus()" title="Actualiser le statut">
+            🔄
+        </button>
+        
+        <div class="grid">
+            <!-- Status Overview -->
+            <div class="card">
+                <h3>📊 Vue d'ensemble</h3>
+                <div id="status-overview">
+                    <div class="status-item" onclick="showFilesModal('instagram-configs')">
+                        <span>Configurations Instagram</span>
+                        <span class="status-badge status-info" id="instagram-configs">-</span>
+                    </div>
+                    <div class="status-item" onclick="showFilesModal('notion-configs')">
+                        <span>Configurations Notion</span>
+                        <span class="status-badge status-warning" id="notion-configs">-</span>
+                    </div>
+                    <div class="status-item" onclick="showFilesModal('pending-posts')">
+                        <span>Posts en attente</span>
+                        <span class="status-badge status-primary" id="pending-posts">-</span>
+                    </div>
+                    <div class="status-item" onclick="showFilesModal('recent-posts')">
+                        <span>Posts récents (7j)</span>
+                        <span class="status-badge status-success" id="recent-posts">-</span>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Git Status -->
+            <div class="card">
+                <h3>📁 Status Git</h3>
+                <div id="git-status">
+                    <div class="status-item">
+                        <span>Branche courante</span>
+                        <span class="status-badge" id="current-branch">-</span>
+                    </div>
+                    <div class="status-item">
+                        <span>Status</span>
+                        <span class="status-badge" id="git-status-badge">-</span>
+                    </div>
+                    <div class="status-item">
+                        <span>Changements dans config/</span>
+                        <span class="status-badge status-info" id="config-changes">-</span>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Notion Status -->
+            <div class="card">
+                <h3>📝 Status Notion</h3>
+                <div id="notion-status">
+                    <div class="status-item">
+                        <span>Configuration</span>
+                        <span class="status-badge" id="notion-config-status">-</span>
+                    </div>
+                    <div id="notion-message" class="status-item" style="font-size: 12px; color: #86868b;">
+                        Chargement...
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Workflow Actions -->
+        <div class="card">
+            <h3>⚡ Actions du Workflow</h3>
+            
+            <h4>🎯 Workflow Principal</h4>
+            <div class="actions-grid">
+                <button class="btn btn-primary" onclick="runAction('generate_configs')">
+                    📥 Générer configs depuis Notion
+                </button>
+                <button class="btn btn-secondary" onclick="runAction('process_configs')">
+                    ☁️ Traiter configs et uploader
+                </button>
+                <button class="btn btn-warning" onclick="runAction('cleanup_old')">
+                    🧹 Nettoyer anciennes configs
+                </button>
+            </div>
+            
+            <!-- Git Actions -->
+            <div class="git-section">
+                <h4>📦 Actions Git</h4>
+                <div class="actions-grid">
+                    <button class="btn btn-primary" onclick="runAction('git_status')">
+                        📋 Git Status
+                    </button>
+                    <button class="btn btn-secondary" onclick="runAction('git_add_configs')">
+                        ➕ Ajouter configs au staging
+                    </button>
+                </div>
+                
+                <div style="margin-top: 15px;">
+                    <input type="text" 
+                           class="git-input" 
+                           id="commit-message" 
+                           placeholder="Message de commit (optionnel)"
+                           value="Update configurations via admin panel">
+                    <div class="actions-grid">
+                        <button class="btn btn-warning" onclick="gitCommit()">
+                            💾 Commit
+                        </button>
+                        <button class="btn btn-danger" onclick="gitPush()">
+                            🚀 Push
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Logs -->
+        <div class="card">
+            <div class="logs-container">
+                <div class="logs-header">
+                    🔍 Logs des commandes en temps réel
+                </div>
+                <div id="logs"></div>
+            </div>
+        </div>
+        
+        <!-- Modal for file details -->
+        <div id="filesModal" class="modal">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <span class="close" onclick="closeModal()">&times;</span>
+                    <h2 id="modalTitle">Fichiers de configuration</h2>
+                </div>
+                <div class="modal-body" id="modalBody">
+                    <p>Chargement...</p>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        // Initialize Socket.IO
+        const socket = io();
+        
+        // Global state
+        let isLoading = false;
+        let currentStatusData = {};
+        
+        // Socket event handlers
+        socket.on('connect', function() {
+            console.log('Connected to server');
+            refreshStatus();
+        });
+        
+        socket.on('process_started', function(data) {
+            addLog(`🚀 Started: ${data.command}`, 'info');
+        });
+        
+        socket.on('process_output', function(data) {
+            addLog(data.line);
+        });
+        
+        socket.on('process_completed', function(data) {
+            const status = data.success ? 'success' : 'error';
+            const icon = data.success ? '✅' : '❌';
+            addLog(`${icon} Process completed with code: ${data.return_code}`, status);
+            
+            // Refresh status after command completion
+            setTimeout(refreshStatus, 1000);
+        });
+        
+        socket.on('process_error', function(data) {
+            addLog(`❌ Error: ${data.error}`, 'error');
+        });
+        
+        // Utility functions
+        function addLog(message, type = 'default') {
+            const logsContainer = document.getElementById('logs');
+            const timestamp = new Date().toLocaleTimeString();
+            
+            const logEntry = document.createElement('div');
+            logEntry.className = `log-entry log-${type}`;
+            logEntry.innerHTML = `<span class="log-timestamp">[${timestamp}]</span>${message}`;
+            
+            logsContainer.appendChild(logEntry);
+            logsContainer.scrollTop = logsContainer.scrollHeight;
+        }
+        
+        function setLoading(loading) {
+            isLoading = loading;
+            const buttons = document.querySelectorAll('.btn');
+            buttons.forEach(btn => {
+                btn.disabled = loading;
+                if (loading && !btn.querySelector('.spinner')) {
+                    const spinner = document.createElement('span');
+                    spinner.className = 'spinner';
+                    btn.insertBefore(spinner, btn.firstChild);
+                } else if (!loading) {
+                    const spinner = btn.querySelector('.spinner');
+                    if (spinner) spinner.remove();
+                }
+            });
+        }
+        
+        // API functions
+        async function refreshStatus() {
+            try {
+                const response = await fetch('/api/status');
+                const data = await response.json();
+                updateStatusDisplay(data);
+                addLog('📊 Status refreshed', 'info');
+            } catch (error) {
+                addLog(`❌ Error refreshing status: ${error.message}`, 'error');
+            }
+        }
+        
+        function updateStatusDisplay(data) {
+            // Store data globally for modal access
+            currentStatusData = data;
+            
+            // Update config overview
+            document.getElementById('instagram-configs').textContent = data.configs.instagram_configs;
+            document.getElementById('notion-configs').textContent = data.configs.notion_configs;
+            document.getElementById('pending-posts').textContent = data.configs.pending_posts;
+            document.getElementById('recent-posts').textContent = data.configs.recent_posts;
+            
+            // Update git status
+            document.getElementById('current-branch').textContent = data.git.current_branch;
+            document.getElementById('config-changes').textContent = data.git.config_changes;
+            
+            const gitStatusBadge = document.getElementById('git-status-badge');
+            gitStatusBadge.textContent = data.git.status === 'clean' ? 'Propre' : `${data.git.total_changes} changements`;
+            gitStatusBadge.className = `status-badge ${data.git.status === 'clean' ? 'status-success' : 'status-warning'}`;
+            
+            // Update Notion status
+            const notionStatusBadge = document.getElementById('notion-config-status');
+            const notionMessage = document.getElementById('notion-message');
+            
+            switch (data.notion.status) {
+                case 'ready':
+                    notionStatusBadge.textContent = 'Prêt';
+                    notionStatusBadge.className = 'status-badge status-success';
+                    notionMessage.textContent = data.notion.message;
+                    break;
+                case 'no_config':
+                    notionStatusBadge.textContent = 'Pas de config';
+                    notionStatusBadge.className = 'status-badge status-warning';
+                    notionMessage.textContent = data.notion.message;
+                    break;
+                case 'missing_env':
+                    notionStatusBadge.textContent = 'Variables manquantes';
+                    notionStatusBadge.className = 'status-badge status-error';
+                    notionMessage.textContent = data.notion.message;
+                    break;
+                default:
+                    notionStatusBadge.textContent = 'Erreur';
+                    notionStatusBadge.className = 'status-badge status-error';
+                    notionMessage.textContent = data.notion.message;
+            }
+        }
+        
+        async function runAction(action) {
+            if (isLoading) return;
+            
+            setLoading(true);
+            
+            try {
+                const response = await fetch(`/api/run/${action}`, {
+                    method: 'POST'
+                });
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}`);
+                }
+                
+                const data = await response.json();
+                addLog(`🎬 Action started: ${data.command}`, 'info');
+                
+            } catch (error) {
+                addLog(`❌ Error starting action: ${error.message}`, 'error');
+            } finally {
+                setLoading(false);
+            }
+        }
+        
+        async function gitCommit() {
+            if (isLoading) return;
+            
+            setLoading(true);
+            const message = document.getElementById('commit-message').value || 'Update configurations via admin panel';
+            
+            try {
+                const response = await fetch('/api/git/commit', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ message })
+                });
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}`);
+                }
+                
+                const data = await response.json();
+                addLog(`💾 Git commit started: ${data.command}`, 'info');
+                
+            } catch (error) {
+                addLog(`❌ Error starting git commit: ${error.message}`, 'error');
+            } finally {
+                setLoading(false);
+            }
+        }
+        
+        async function gitPush() {
+            if (isLoading) return;
+            
+            setLoading(true);
+            
+            try {
+                const response = await fetch('/api/git/push', {
+                    method: 'POST'
+                });
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}`);
+                }
+                
+                const data = await response.json();
+                addLog(`🚀 Git push started: ${data.command}`, 'info');
+                
+            } catch (error) {
+                addLog(`❌ Error starting git push: ${error.message}`, 'error');
+            } finally {
+                setLoading(false);
+            }
+        }
+        
+        // Modal functions
+        async function showFilesModal(type) {
+            const modal = document.getElementById('filesModal');
+            const modalTitle = document.getElementById('modalTitle');
+            const modalBody = document.getElementById('modalBody');
+            
+            // Set modal title
+            const titles = {
+                'instagram-configs': '📱 Configurations Instagram',
+                'notion-configs': '📝 Configurations Notion', 
+                'pending-posts': '⏳ Posts en attente',
+                'recent-posts': '✅ Posts récents (7 jours)'
+            };
+            modalTitle.textContent = titles[type] || 'Fichiers';
+            
+            // Show modal with loading
+            modalBody.innerHTML = '<p style="text-align: center; padding: 20px;">🔄 Chargement des fichiers...</p>';
+            modal.style.display = 'block';
+            
+            try {
+                // Fetch detailed file information
+                const response = await fetch(`/api/files/${type}`);
+                const files = await response.json();
+                
+                if (files.length === 0) {
+                    modalBody.innerHTML = '<p style="text-align: center; padding: 20px; color: #6c757d;">📄 Aucun fichier trouvé</p>';
+                    return;
+                }
+                
+                // Build files list HTML
+                let html = '';
+                files.forEach(file => {
+                    html += `
+                        <div class="file-item" onclick="viewFile('${file.path}')">
+                            <div class="file-name">${file.name}</div>
+                            <div class="file-details">
+                                ${file.scheduled_time ? `<div class="file-detail-item">
+                                    <span class="file-detail-label">Programmé:</span>
+                                    <span class="file-detail-value">${new Date(file.scheduled_time).toLocaleString('fr-FR')}</span>
+                                </div>` : ''}
+                                ${file.posted !== undefined ? `<div class="file-detail-item">
+                                    <span class="file-detail-label">Statut:</span>
+                                    <span class="file-detail-value">${file.posted ? '✅ Publié' : '⏳ En attente'}</span>
+                                </div>` : ''}
+                                ${file.posted_at ? `<div class="file-detail-item">
+                                    <span class="file-detail-label">Publié le:</span>
+                                    <span class="file-detail-value">${new Date(file.posted_at).toLocaleString('fr-FR')}</span>
+                                </div>` : ''}
+                                ${file.video_url ? `<div class="file-detail-item">
+                                    <span class="file-detail-label">Vidéo:</span>
+                                    <span class="file-detail-value">☁️ Cloudinary</span>
+                                </div>` : ''}
+                                <div class="file-detail-item">
+                                    <span class="file-detail-label">Modifié:</span>
+                                    <span class="file-detail-value">${new Date(file.modified).toLocaleString('fr-FR')}</span>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                });
+                
+                modalBody.innerHTML = html;
+                
+            } catch (error) {
+                modalBody.innerHTML = `<p style="text-align: center; padding: 20px; color: #dc3545;">❌ Erreur lors du chargement: ${error.message}</p>`;
+            }
+        }
+        
+        function closeModal() {
+            document.getElementById('filesModal').style.display = 'none';
+        }
+        
+        async function viewFile(filePath) {
+            try {
+                const response = await fetch(`/api/file/content?path=${encodeURIComponent(filePath)}`);
+                const content = await response.text();
+                
+                // Create a new modal for file content
+                const fileModal = document.createElement('div');
+                fileModal.className = 'modal';
+                fileModal.style.display = 'block';
+                fileModal.innerHTML = `
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <span class="close" onclick="this.closest('.modal').remove()">&times;</span>
+                            <h2>📄 ${filePath.split('/').pop()}</h2>
+                        </div>
+                        <div class="modal-body">
+                            <pre style="background: #f8f9fa; padding: 15px; border-radius: 6px; overflow-x: auto; font-size: 12px; line-height: 1.4;">${content}</pre>
+                        </div>
+                    </div>
+                `;
+                document.body.appendChild(fileModal);
+                
+            } catch (error) {
+                addLog(`❌ Erreur lors de la lecture du fichier: ${error.message}`, 'error');
+            }
+        }
+        
+        // Close modal when clicking outside
+        window.onclick = function(event) {
+            const modals = document.querySelectorAll('.modal');
+            modals.forEach(modal => {
+                if (event.target == modal) {
+                    modal.style.display = 'none';
+                }
+            });
+        }
+        
+        // Auto-refresh status every 30 seconds
+        setInterval(refreshStatus, 30000);
+        
+        // Initial welcome message
+        addLog('👋 Bienvenue dans le panel d\'administration Instagram Reel Automation', 'info');
+    </script>
+</body>
+</html>
