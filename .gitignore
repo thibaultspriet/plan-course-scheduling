@@ -58,3 +58,11 @@ scripts/tiktok_auth.py
 
 # Admin panel logs (optional - you may want to commit these)
 admin_logs/
+InstagramAdminPanel.applescript
+create_desktop_app.sh
+launch_admin.sh
+launch_admin_panel.py
+smart_launcher.py
+run_critical_tests.py
+run_tests.py
+validate_system.py

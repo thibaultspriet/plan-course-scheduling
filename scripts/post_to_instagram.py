@@ -314,6 +314,7 @@ class ReelScheduler:
             return []
         
         posted_reels = []
+        failed_posts = []
         config_files = list(self.config_dir.glob("*.json"))
         
         self.instagram_api.logger.info(f"Found {len(config_files)} configuration files")
@@ -348,8 +349,15 @@ class ReelScheduler:
                 self.instagram_api.logger.info(f"✅ Successfully posted {config_file.name}")
                 
             except Exception as e:
-                self.instagram_api.logger.error(f"Failed to process {config_file.name}: {str(e)}")
-                continue
+                error_msg = f"Failed to process {config_file.name}: {str(e)}"
+                self.instagram_api.logger.error(error_msg)
+                failed_posts.append(error_msg)
+        
+        # Raise error if any posts failed
+        if failed_posts:
+            error_summary = f"❌ {len(failed_posts)} reel(s) failed to post:\n" + "\n".join(failed_posts)
+            self.instagram_api.logger.error(error_summary)
+            raise Exception(error_summary)
         
         return posted_reels
 

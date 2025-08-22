@@ -1,0 +1,76 @@
+name: Update Post Schedule
+
+on:
+  push:
+    paths:
+      - 'config/*.json'
+  workflow_dispatch:
+    # Allow manual triggering
+
+jobs:
+  update-schedule:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+      with:
+        # Need token with workflow permissions to update other workflows
+        token: ${{ secrets.GITHUB_TOKEN }}
+        
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.11'
+        
+    - name: Install uv
+      uses: astral-sh/setup-uv@v3
+      
+    - name: Install dependencies
+      run: uv sync
+      
+    - name: Calculate optimal schedule
+      id: calculate
+      run: |
+        result=$(uv run python scripts/calculate_next_post_time.py)
+        echo "$result"
+        
+        # Extract cron schedule from output
+        cron_line=$(echo "$result" | grep "# - cron:" | head -1)
+        if [ -n "$cron_line" ]; then
+          cron_schedule=$(echo "$cron_line" | sed "s/# - cron: '//g" | sed "s/'//g")
+          echo "cron_schedule=$cron_schedule" >> $GITHUB_OUTPUT
+          echo "has_posts=true" >> $GITHUB_OUTPUT
+          echo "Next posts found, optimal schedule: $cron_schedule"
+        else
+          echo "has_posts=false" >> $GITHUB_OUTPUT
+          echo "No future posts found"
+        fi
+    
+    - name: Update workflow schedule
+      if: steps.calculate.outputs.has_posts == 'true'
+      run: |
+        # Update the post-reels.yml workflow with new cron schedule
+        uv run python scripts/update_workflow_cron.py "${{ steps.calculate.outputs.cron_schedule }}"
+    
+    - name: Disable workflow schedule
+      if: steps.calculate.outputs.has_posts == 'false'
+      run: |
+        # Disable the scheduled workflow when no posts are pending
+        uv run python scripts/update_workflow_cron.py --disable
+    
+    - name: Commit workflow changes
+      run: |
+        git config --local user.email "action@github.com"
+        git config --local user.name "GitHub Action"
+        git add .github/workflows/post-reels.yml
+        if ! git diff --staged --quiet; then
+          if [ "${{ steps.calculate.outputs.has_posts }}" = "true" ]; then
+            git commit -m "Update post schedule to: ${{ steps.calculate.outputs.cron_schedule }} [skip ci]"
+          else
+            git commit -m "Disable post schedule - no future posts [skip ci]"
+          fi
+          git push
+        else
+          echo "No workflow changes to commit"
+        fi
