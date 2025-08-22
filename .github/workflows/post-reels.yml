@@ -10,7 +10,7 @@ on:
         default: 'false'
   schedule:
     # Optimized schedule for next post
-    - cron: '55 17 22 8 *'
+    - cron: '1 18 22 8 *'
 
 jobs:
   post-reels:
