@@ -63,3 +63,7 @@ create_desktop_app.sh
 launch_admin.sh
 launch_admin_panel.py
 smart_launcher.py
+run_critical_tests.py
+run_tests.py
+tests/test_workflow_syntax.py
+validate_system.py
