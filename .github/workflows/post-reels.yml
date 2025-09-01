@@ -8,9 +8,8 @@ on:
         description: 'Force posting check even if no posts are due'
         required: false
         default: 'false'
-  schedule:
-    # Optimized schedule for next post
-    - cron: '1 18 22 8 *'
+  # schedule: # Disabled - no future posts
+  #   - cron: "0 * * * *"
 
 jobs:
   post-reels:
