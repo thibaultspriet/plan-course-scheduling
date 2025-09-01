@@ -8,9 +8,9 @@ on:
         description: 'Force posting check even if no posts are due'
         required: false
         default: 'false'
-  # schedule: # Disabled - no future posts
-  #   - cron: "0 * * * *"
-
+  schedule:
+    # Optimized schedule for next post
+    - cron: '1 16 1 9 *'
 jobs:
   post-reels:
     runs-on: ubuntu-latest
