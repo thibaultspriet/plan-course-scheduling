@@ -10,7 +10,7 @@ on:
         default: 'false'
   schedule:
     # Optimized schedule for next post
-    - cron: '1 16 1 10 *'
+    - cron: '1 18 3 10 *'
 jobs:
   post-reels:
     runs-on: ubuntu-latest
