@@ -4,5 +4,8 @@
   "scheduled_time": "2025-10-17T20:00:00+02:00",
   "location_id": null,
   "cover_url": null,
-  "posted": false
+  "posted": true,
+  "cloudinary_video_deleted": false,
+  "cloudinary_deletion_error": "Error deleting video from Cloudinary: Must supply cloud_name",
+  "posted_at": "2025-10-17T20:27:47.531183+02:00"
 }
